@@ -4134,6 +4134,7 @@ export default async function build(
               buildId,
               configOutDir: path.join(dir, configOutDir),
               staticPages,
+              serverPropsPages,
               nextVersion: process.env.__NEXT_VERSION as string,
               tracingRoot: outputFileTracingRoot,
               hasNodeMiddleware,

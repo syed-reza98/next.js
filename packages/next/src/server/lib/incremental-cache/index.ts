@@ -95,7 +95,7 @@ export class IncrementalCache implements IncrementalCacheType {
   readonly revalidatedTags?: readonly string[]
 
   private static readonly debug: boolean =
-    !!process.env.NEXT_PRIVATE_DEBUG_CACHE
+    !!process.env.NEXT_PRIVATE_DEBUG_CACHE || true
   private readonly locks = new Map<string, Promise<void>>()
 
   /**
@@ -144,6 +144,9 @@ export class IncrementalCache implements IncrementalCacheType {
 
       if (globalCacheHandler?.FetchCache) {
         CurCacheHandler = globalCacheHandler.FetchCache
+        if (IncrementalCache.debug) {
+          console.log('IncrementalCache: using global FetchCache cache handler')
+        }
       } else {
         if (fs && serverDistDir) {
           if (IncrementalCache.debug) {

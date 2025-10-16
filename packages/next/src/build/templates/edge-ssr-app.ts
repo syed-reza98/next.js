@@ -175,7 +175,8 @@ async function requestHandler(
       incrementalCache: await pageRouteModule.getIncrementalCache(
         baseReq,
         nextConfig,
-        prerenderManifest
+        prerenderManifest,
+        true
       ),
 
       waitUntil: event.waitUntil.bind(event),

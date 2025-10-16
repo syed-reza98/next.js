@@ -39,7 +39,7 @@ import {
 } from '../../lib/constants'
 import { normalizeLocalePath } from '../../shared/lib/i18n/normalize-locale-path'
 import { addPathPrefix } from '../../shared/lib/router/utils/add-path-prefix'
-import { getRedirectStatus } from '../../lib/redirect-status'
+import { getRedirectStatus, modifyRouteRegex } from '../../lib/redirect-status'
 import { getNamedRouteRegex } from '../../shared/lib/router/utils/route-regex'
 import { escapeStringRegexp } from '../../shared/lib/escape-regexp'
 
@@ -367,7 +367,9 @@ function normalizePathnames(
       ...outputs.staticFiles,
       ...(outputs.middleware ? [outputs.middleware] : []),
     ]) {
-      output.pathname = addPathPrefix(output.pathname, config.basePath)
+      output.pathname =
+        addPathPrefix(output.pathname, config.basePath).replace(/\/$/, '') ||
+        '/'
     }
   }
 }
@@ -387,6 +389,7 @@ export async function handleBuildComplete({
   hasStatic404,
   hasStatic500,
   routesManifest,
+  serverPropsPages,
   hasNodeMiddleware,
   prerenderManifest,
   middlewareManifest,
@@ -407,6 +410,7 @@ export async function handleBuildComplete({
   hasNodeMiddleware: boolean
   config: NextConfigComplete
   pageKeys: readonly string[]
+  serverPropsPages: Set<string>
   requiredServerFiles: string[]
   routesManifest: RoutesManifest
   hasInstrumentationHook: boolean
@@ -688,6 +692,45 @@ export async function handleBuildComplete({
 
         if (output.type === AdapterOutputType.PAGES) {
           outputs.pages.push(output)
+
+          // if page is get server side props we need to create
+          // the _next/data output as well
+          if (serverPropsPages.has(page)) {
+            const dataPathname = path.posix.join(
+              '/_next/data',
+              buildId,
+              page + '.json'
+            )
+            outputs.pages.push({
+              ...output,
+              pathname: dataPathname,
+              id: dataPathname,
+            })
+          }
+
+          for (const locale of config.i18n?.locales || []) {
+            const localePage =
+              page === '/' ? `/${locale}` : addPathPrefix(page, `/${locale}`)
+
+            outputs.pages.push({
+              ...output,
+              id: localePage,
+              pathname: localePage,
+            })
+
+            if (serverPropsPages.has(page)) {
+              const dataPathname = path.posix.join(
+                '/_next/data',
+                buildId,
+                localePage + '.json'
+              )
+              outputs.pages.push({
+                ...output,
+                pathname: dataPathname,
+                id: dataPathname,
+              })
+            }
+          }
         } else {
           outputs.pagesApi.push(output)
         }
@@ -984,7 +1027,8 @@ export async function handleBuildComplete({
             !isNotFoundTrue || (isNotFoundTrue && hasStatic404)
               ? {
                   filePath,
-                  initialStatus,
+                  initialStatus:
+                    (initialStatus ?? isNotFoundTrue) ? 404 : undefined,
                   initialHeaders: {
                     ...initialHeaders,
                     vary: varyHeader,
@@ -1143,6 +1187,7 @@ export async function handleBuildComplete({
                       ),
                     }
                   : undefined,
+              groupId: prerenderGroupId,
             }
             outputs.prerenders.push(currentOutput)
 
@@ -1163,6 +1208,7 @@ export async function handleBuildComplete({
                 ),
                 // data route doesn't have skeleton fallback
                 fallback: undefined,
+                groupId: prerenderGroupId,
               })
             }
             prerenderGroupId += 1
@@ -1245,18 +1291,15 @@ export async function handleBuildComplete({
       // needs basePath and locale handling if pages router
       dynamicRoutes.push({
         source: route.page,
-        sourceRegex:
-          '^' +
+        sourceRegex: routeRegex.namedRegex.replace(
+          '^',
+          `^${config.basePath && config.basePath !== '/' ? path.posix.join('/', config.basePath || '') : ''}[/]?${shouldLocalize ? '(?<nextLocale>[^/]{1,})?' : ''}`
+        ),
+        destination:
           path.posix.join(
             '/',
             config.basePath,
-            shouldLocalize ? '/(?<nextLocale>.*?)' : '',
-            routeRegex.namedRegex.substring(1)
-          ),
-        destination:
-          path.posix.join(
-            config.basePath,
-            shouldLocalize ? '$nextLocale' : '',
+            shouldLocalize ? '/$nextLocale' : '',
             route.page
           ) + getDestinationQuery(route.routeKeys),
         has: isFallbackFalse ? fallbackFalseHasCondition : undefined,
@@ -1266,13 +1309,10 @@ export async function handleBuildComplete({
       for (const segmentRoute of route.prefetchSegmentDataRoutes || []) {
         dynamicSegmentRoutes.push({
           source: route.page,
-          sourceRegex:
-            '^' +
-            path.posix.join(
-              '/',
-              config.basePath,
-              segmentRoute.source.substring(1)
-            ),
+          sourceRegex: segmentRoute.source.replace(
+            '^',
+            `^${config.basePath && config.basePath !== '/' ? path.posix.join('/', config.basePath || '') : ''}[/]?`
+          ),
           destination: path.posix.join(
             config.basePath,
             segmentRoute.destination +
@@ -1314,16 +1354,15 @@ export async function handleBuildComplete({
 
         dynamicDataRoutes.push({
           source: route.page,
-          sourceRegex:
-            '^' +
-            path.posix.join(
+          sourceRegex: routeRegex.namedRegex.replace(
+            '^',
+            `^${path.posix.join(
               '/',
               config.basePath,
               `_next/data`,
-              escapeStringRegexp(buildId),
-              shouldLocalize ? '/(?<nextLocale>.*)' : '',
-              routeRegex.namedRegex.substring(1)
-            ),
+              escapeStringRegexp(buildId)
+            )}[/]?${shouldLocalize ? '(?<nextLocale>[^/]{1,})?' : ''}`
+          ),
           destination,
           has: isFallbackFalse ? fallbackFalseHasCondition : undefined,
           missing: undefined,
@@ -1333,10 +1372,11 @@ export async function handleBuildComplete({
 
     const buildRewriteItem = (route: ManifestRewriteRoute): RewriteItem => {
       const converted = convertRewrites([route], ['nextInternalLocale'])[0]
+      const regex = converted.src || route.regex
 
       return {
         source: route.source,
-        sourceRegex: converted.src || route.regex,
+        sourceRegex: route.internal ? regex : modifyRouteRegex(regex),
         destination: converted.dest || route.destination,
         has: route.has,
         missing: route.missing,
@@ -1361,10 +1401,11 @@ export async function handleBuildComplete({
           redirects: routesManifest.redirects.map((route) => {
             const converted = convertRedirects([route], 307)[0]
             let dest = 'headers' in converted && converted.headers?.Location
+            const regex = converted.src || route.regex
 
             return {
               source: route.source,
-              sourceRegex: converted.src || route.regex,
+              sourceRegex: route.internal ? regex : modifyRouteRegex(regex),
               destination: dest || route.destination,
               statusCode: converted.status || getRedirectStatus(route),
               has: route.has,
@@ -1374,10 +1415,11 @@ export async function handleBuildComplete({
           }),
           headers: routesManifest.headers.map((route) => {
             const converted = convertHeaders([route])[0]
+            const regex = converted.src || route.regex
 
             return {
               source: route.source,
-              sourceRegex: converted.src || route.regex,
+              sourceRegex: route.internal ? regex : modifyRouteRegex(regex),
               headers: 'headers' in converted ? converted.headers || {} : {},
               has: route.has,
               missing: route.missing,
