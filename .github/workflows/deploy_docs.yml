@@ -1,10 +1,13 @@
 name: docs-deploy
 
 on:
-  pull_request:
-    paths:
-      - 'apps/docs/**'
-    types: [opened, synchronize]
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
+  workflow_dispatch:
+  # Uncomment below to enable automatic triggers
+  # pull_request:
+  #   paths:
+  #     - 'apps/docs/**'
+  #   types: [opened, synchronize]
 
 permissions:
   contents: read

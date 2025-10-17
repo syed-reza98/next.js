@@ -1,16 +1,18 @@
 name: Turbopack Benchmark
 
 on:
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
   workflow_dispatch:
-  push:
-    branches:
-      - canary
-  pull_request:
-    types: ['opened', 'reopened', 'synchronize', 'labeled']
-    paths:
-      - '**/crates/**'
-      - '**/Cargo.toml'
-      - '**/Cargo.lock'
+  # Uncomment below to enable automatic triggers
+  # push:
+  #   branches:
+  #     - canary
+  # pull_request:
+  #   types: ['opened', 'reopened', 'synchronize', 'labeled']
+  #   paths:
+  #     - '**/crates/**'
+  #     - '**/Cargo.toml'
+  #     - '**/Cargo.lock'
 
 concurrency:
   # Limit concurrent runs to 1 per PR, but allow concurrent runs on canary branch

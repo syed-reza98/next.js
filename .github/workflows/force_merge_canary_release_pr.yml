@@ -1,6 +1,10 @@
 name: Force Merge Canary Release PR
 
-on: pull_request
+on:
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
+  workflow_dispatch:
+  # Uncomment below to enable automatic triggers
+  # pull_request:
 
 permissions:
   # To bypass and merge PR

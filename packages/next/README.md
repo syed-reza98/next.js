@@ -33,6 +33,15 @@ To chat with other community members you can join the Next.js [Discord](https://
 
 Do note that our [Code of Conduct](https://github.com/vercel/next.js/blob/canary/CODE_OF_CONDUCT.md) applies to all Next.js community channels. Users are **highly encouraged** to read and adhere to it to avoid repercussions.
 
+## Repository Documentation
+
+For comprehensive information about this repository:
+
+- **[Repository Audit](/docs/REPOSITORY_AUDIT.md)** - Complete overview of repository structure, workflows, and best practices
+- **[GitHub Workflows](/docs/WORKFLOWS.md)** - Detailed documentation of all 36 GitHub Actions workflows
+- **[GitHub Pages Setup](/docs/GITHUB_PAGES_SETUP.md)** - Guide for deploying documentation to GitHub Pages
+- **[Documentation Index](/docs/README.md)** - Complete documentation navigation
+
 ## Contributing
 
 Contributions to Next.js are welcome and highly appreciated. However, before you jump right into it, we would like you to review our [Contribution Guidelines](/contributing.md) to make sure you have a smooth experience contributing to Next.js.
