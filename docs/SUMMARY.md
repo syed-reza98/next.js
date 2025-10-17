@@ -42,7 +42,7 @@ Five comprehensive documentation files totaling over 55,000 words:
 
 1. **`.github/workflows/deploy-github-pages.yml`**
    - Automated deployment workflow
-   - Triggers on push to canary/main branches
+   - Triggers on push to syed-reza98/docs branch (default branch)
    - Builds and deploys documentation
    - Manual trigger support
 
@@ -163,9 +163,11 @@ next.js/
 ### Workflow Configuration
 
 **Triggers:**
-- Push to `canary` or `main` branch
+- Push to `syed-reza98/docs` branch (default branch)
 - Changes to `apps/docs/**` or `docs/**`
 - Manual workflow dispatch
+
+**Note:** Other workflows have been configured as manual-trigger only to prevent unnecessary CI runs on the forked repository.
 
 **Build Process:**
 1. Checkout repository

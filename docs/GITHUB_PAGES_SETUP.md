@@ -37,6 +37,7 @@ GitHub Pages provides free static site hosting directly from your GitHub reposit
 - **Location:** `apps/docs/`
 - **Build Command:** `pnpm run build-docs`
 - **Output Directory:** `apps/docs/.next` or `apps/docs/out`
+- **Deployment Branch:** `syed-reza98/docs` (default branch)
 
 ---
 

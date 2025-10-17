@@ -1,10 +1,13 @@
 name: build-and-test
 
 on:
-  push:
-    branches: ['canary']
-  pull_request:
-    types: [opened, synchronize]
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
+  workflow_dispatch:
+  # Uncomment below to enable automatic triggers
+  # push:
+  #   branches: ['canary']
+  # pull_request:
+  #   types: [opened, synchronize]
 
 # NOTE: anything in `afterBuild` inherits environment variables defined in
 # `build_reusable.yml` (not these!) because that job executes within the context

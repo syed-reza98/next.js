@@ -1,11 +1,10 @@
 name: Deploy Documentation to GitHub Pages
 
 on:
-  # Trigger on pushes to the main documentation branches
+  # Trigger on pushes to the default documentation branch
   push:
     branches:
-      - canary
-      - main
+      - syed-reza98/docs
     paths:
       - 'apps/docs/**'
       - 'docs/**'

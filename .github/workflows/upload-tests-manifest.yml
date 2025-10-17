@@ -4,14 +4,16 @@
 name: Upload bundler test manifests to areweturboyet.com
 
 on:
-  schedule:
-    - cron: '0 8 * * *'
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
   workflow_dispatch: {}
-  push:
-    branches:
-      - canary
-    paths:
-      - 'test/*-manifest.json'
+  # Uncomment below to enable automatic triggers
+  # schedule:
+  #   - cron: '0 8 * * *'
+  # push:
+  #   branches:
+  #     - canary
+  #   paths:
+  #     - 'test/*-manifest.json'
 
 jobs:
   upload_test_results:

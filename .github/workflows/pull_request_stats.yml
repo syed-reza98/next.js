@@ -1,6 +1,9 @@
 on:
-  pull_request:
-    types: [opened, synchronize]
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
+  workflow_dispatch:
+  # Uncomment below to enable automatic triggers
+  # pull_request:
+  #   types: [opened, synchronize]
 
 name: Generate Pull Request Stats
 

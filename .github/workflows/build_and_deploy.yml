@@ -2,11 +2,12 @@
 name: build-and-deploy
 
 on:
-  push:
-  # we need the preview tarball for deploy tests
-  pull_request:
-    types: [opened, synchronize]
+  # Manual trigger only - to avoid unnecessary CI runs on forked repository
   workflow_dispatch:
+  # Uncomment below to enable automatic triggers
+  # push:
+  # pull_request:
+  #   types: [opened, synchronize]
 
 env:
   NAPI_CLI_VERSION: 2.18.4

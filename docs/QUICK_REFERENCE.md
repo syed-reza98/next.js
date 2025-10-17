@@ -54,9 +54,11 @@
 
 The deployment workflow runs when:
 
-- ✅ Push to `canary` or `main` branch
+- ✅ Push to `syed-reza98/docs` branch (default branch)
 - ✅ Changes to `apps/docs/**` or `docs/**`
 - ✅ Manual trigger from Actions tab
+
+**Note:** Other workflows have been configured as manual-trigger only to avoid unnecessary CI runs on the forked repository.
 
 ---
 
