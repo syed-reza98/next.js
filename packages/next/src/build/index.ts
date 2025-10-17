@@ -1535,7 +1535,11 @@ export default async function build(
                   undefined
                 )
               )
-            } else if (!isReservedPage(route)) {
+            } else if (
+              !isReservedPage(route) ||
+              // don't consider /api reserved here
+              route.match(/^\/(api(\/|$))/)
+            ) {
               staticRoutes.push(pageToRoute(route))
             }
           }

@@ -10,7 +10,6 @@ import { recursiveReadDir } from '../../lib/recursive-readdir'
 import { isDynamicRoute } from '../../shared/lib/router/utils'
 import type { Revalidate } from '../../server/lib/cache-control'
 import type { NextConfigComplete } from '../../server/config-shared'
-import type { MiddlewareMatcher } from '../analysis/get-page-static-info'
 import { normalizeAppPath } from '../../shared/lib/router/utils/app-paths'
 import { AdapterOutputType, type PHASE_TYPE } from '../../shared/lib/constants'
 import { normalizePagePath } from '../../shared/lib/page-path/normalize-page-path'
@@ -56,6 +55,12 @@ interface SharedRouteFields {
    * pathname is the URL pathname the asset should be served at
    */
   pathname: string
+
+  /**
+   * sourcePage is the original source in the app or pages folder
+   */
+  sourcePage: string
+
   /**
    * runtime is which runtime the entrypoint is built for
    */
@@ -215,11 +220,6 @@ export interface AdapterOutput {
       renderingMode?: RenderingMode
 
       /**
-       * matchers are the configured matchers for middleware
-       */
-      matchers?: MiddlewareMatcher[]
-
-      /**
        * bypassToken is the generated token that signals a prerender cache
        * should be bypassed
        */
@@ -251,7 +251,12 @@ export interface AdapterOutput {
       /**
        * matchers are the configured matchers for middleware
        */
-      matchers?: MiddlewareMatcher[]
+      matchers?: Array<{
+        source: string
+        sourceRegex: string
+        has: RouteHas[] | undefined
+        missing: RouteHas[] | undefined
+      }>
     }
   }
 }
@@ -365,7 +370,6 @@ function normalizePathnames(
       ...outputs.appRoutes,
       ...outputs.prerenders,
       ...outputs.staticFiles,
-      ...(outputs.middleware ? [outputs.middleware] : []),
     ]) {
       output.pathname =
         addPathPrefix(output.pathname, config.basePath).replace(/\/$/, '') ||
@@ -548,6 +552,7 @@ export async function handleBuildComplete({
           type,
           id: page.name,
           runtime: 'edge',
+          sourcePage: page.page.replace(/^(app|pages)\//, ''),
           pathname: isAppPrefix ? normalizeAppPath(page.name) : page.name,
           filePath: path.join(
             distDir,
@@ -565,11 +570,6 @@ export async function handleBuildComplete({
           assets: {},
           wasmAssets: {},
           config: {
-            ...(type === AdapterOutputType.MIDDLEWARE
-              ? {
-                  matchers: page.matchers,
-                }
-              : {}),
             env: page.env,
           },
         }
@@ -599,6 +599,25 @@ export async function handleBuildComplete({
         }
 
         if (type === AdapterOutputType.MIDDLEWARE) {
+          ;(output as AdapterOutput['MIDDLEWARE']).config.matchers =
+            page.matchers.map((item) => {
+              return {
+                source: item.originalSource,
+                sourceRegex: item.regexp,
+                has: item.has,
+                missing: [
+                  ...(item.missing || []),
+                  // always skip middleware for on-demand revalidate
+                  {
+                    type: 'header',
+                    key: 'x-prerender-revalidate',
+                    value: prerenderManifest.preview.previewModeId,
+                  },
+                ],
+              }
+            })
+          output.pathname = '/_middleware'
+          output.id = '/_middleware'
           outputs.middleware = output
         } else {
           currentOutputs.push(output)
@@ -632,10 +651,7 @@ export async function handleBuildComplete({
         }
 
         const route = normalizePagePath(page)
-        const pageFile = path.join(
-          pagesDistDir,
-          `${normalizePagePath(page)}.js`
-        )
+        const pageFile = path.join(pagesDistDir, `${route}.js`)
 
         // if it's an auto static optimized page it's just
         // a static file
@@ -681,6 +697,7 @@ export async function handleBuildComplete({
             : AdapterOutputType.PAGES,
           filePath: pageTraceFile.replace(/\.nft\.json$/, ''),
           pathname: route,
+          sourcePage: route.replace(/^\//, ''),
           assets,
           runtime: 'nodejs',
           config: {
@@ -746,12 +763,29 @@ export async function handleBuildComplete({
         outputs.middleware = {
           pathname: '/_middleware',
           id: '/_middleware',
+          sourcePage: 'middleware',
           assets,
           type: AdapterOutputType.MIDDLEWARE,
           runtime: 'nodejs',
           filePath: middlewareFile,
           config: {
-            matchers: functionConfig.matchers,
+            matchers:
+              functionConfig.matchers?.map((item) => {
+                return {
+                  source: item.originalSource,
+                  sourceRegex: item.regexp,
+                  has: item.has,
+                  missing: [
+                    ...(item.missing || []),
+                    // always skip middleware for on-demand revalidate
+                    {
+                      type: 'header',
+                      key: 'x-prerender-revalidate',
+                      value: prerenderManifest.preview.previewModeId,
+                    },
+                  ],
+                }
+              }) || [],
           },
         } satisfies AdapterOutput['MIDDLEWARE']
       }
@@ -780,6 +814,7 @@ export async function handleBuildComplete({
             {
               pathname: normalizedPage,
               id: normalizedPage,
+              sourcePage: page,
               assets,
               type: page.endsWith('/route')
                 ? AdapterOutputType.APP_ROUTE
@@ -1036,7 +1071,10 @@ export async function handleBuildComplete({
                     ...meta.headers,
                   },
                   initialExpiration,
-                  initialRevalidate: initialRevalidate || 1,
+                  initialRevalidate:
+                    typeof initialRevalidate === 'undefined'
+                      ? 1
+                      : initialRevalidate,
                 }
               : undefined,
           config: {
