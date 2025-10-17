@@ -4,6 +4,20 @@ This directory contains comprehensive documentation about the Next.js repository
 
 ## 📚 Documentation Files
 
+### [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) ⚡
+**Start here!** One-page quick reference for:
+- 5-minute GitHub Pages setup
+- Common commands
+- Troubleshooting tips
+- Important links
+
+### [SUMMARY.md](./SUMMARY.md)
+Executive summary including:
+- What was completed
+- Key deliverables
+- Quick start guide
+- File checklist
+
 ### [REPOSITORY_AUDIT.md](./REPOSITORY_AUDIT.md)
 Complete audit of the repository including:
 - Repository structure and organization
